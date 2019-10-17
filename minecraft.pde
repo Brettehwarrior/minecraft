@@ -1,27 +1,41 @@
-/*
-* This one is actually minecraft by Trent Baker (c) 2019
+/* minecraft by Trent Baker (c) 2019
+*
+* This is an attempt to recreate Mojang's Minecraft (2009) in Processing
+* All code written by Trent baker unless shamefully copied from forums (comments with links throughout)
+* Shoutouts to Processing's incredible documentation and the Coding Train's fantastic tutorials
+* Shoutouts to Patty B as well
 */
 
 import com.jogamp.newt.opengl.GLWindow;
-
-PImage textures;
-Cam cam;
+import com.jogamp.opengl.GL;
+import com.jogamp.opengl.GL2ES2;
+ 
+PJOGL pgl; //https://forum.processing.org/two/discussion/25272/how-to-enable-backface-culling-in-p3d
+GL2ES2 gl;
 
 GLWindow win;
 PVector mousePos = new PVector();
+
+//PImage textures;
+Cam cam;
+
+Chunk chunk;
 
 void setup() {
   size(1280, 720, P3D);
   
   ((PGraphicsOpenGL)g).textureSampling(3); // This just disables antialiasing because it looks all blurry (https://forum.processing.org/one/topic/p3d-disable-texture-smoothing-antialiasing-when-upscaling.html)
   
-  // Load texture map
-  textures = loadImage("textures.png");
+  //***** THIS WAS MOVED TO Chunk FOR A MINUTE (ALSO THE OBJECT DECLARATION EARLIER) *****//
+  //// Load texture map
+  //textures = loadImage("textures.png");
   
   // Camera
-  cam = new Cam(0,0, (height/2)/tan(PI/6), 0,0,0);
-  cam.ah = 270;
-  cam.av = 90;
+  cam = new Cam(0,0,0, 0,0,0); //z was formerly (height/2)/tan(PI/6)
+  
+  // Make chunk temp
+  chunk = new Chunk(0, 0);
+  chunk.generateTerrain();
   
   //Funky doodah reset mouse position (https://discourse.processing.org/t/extending-the-mouse-range-past-the-screen-size/4431/4)
   win = (GLWindow)surface.getNative();
@@ -31,67 +45,42 @@ void setup() {
 
 void draw() {
   background(103, 152, 201);
+  // Back-face culling
+  pgl = (PJOGL) beginPGL();  
+  gl = pgl.gl.getGL2ES2();
+  gl.glEnable(GL.GL_CULL_FACE);
+  gl.glCullFace(GL.GL_BACK);
+  
   ambientLight(200, 200, 200);
   directionalLight(255, 255, 255, 0.5, 1, 0);
   noStroke();
-  //noFill();
+  fill(255);
   
   // Camera stuff
   float lookSpeed = 0.15;
   cam.ah -= ((width/2)-mouseX) *lookSpeed;
   cam.av -= ((height/2)-mouseY)*lookSpeed;
-  //robot.mouseMove(width-width/4, height-height/4); //center cursor
   cam.move();
   cam.update();
   cam.display();
   
-  // Draw textured cube---------------------
-  float w = 100; // cube width
-  float texScale = 16;
-  float texX = 8, texY = 0;
   
-  pushMatrix();
-  //translate(x,y,z);
-  //rotateX(PI/8);
-  //rotateY(PI/mouseX);
-  beginShape(QUADS);
-  texture(textures);
+  // RENDER THINGS HERE //
+  chunk.buildMesh();
   
-  // Y- face
-  vertex(-w/2, -w/2, -w/2, texX*texScale,  texY*texScale); //1
-  vertex( w/2, -w/2, -w/2, (texX*texScale)+(texScale-1), texY*texScale); //2
-  vertex( w/2, -w/2,  w/2, (texX*texScale)+(texScale-1), (texY*texScale)+(texScale-1)); //3
-  vertex(-w/2, -w/2,  w/2, texX*texScale,  (texY*texScale)+(texScale-1)); //4
-  // Z- face
-  vertex( w/2, -w/2, -w/2, texX*texScale,  texY*texScale); //2
-  vertex(-w/2, -w/2, -w/2, (texX*texScale)+(texScale-1), texY*texScale); //1
-  vertex(-w/2,  w/2, -w/2, (texX*texScale)+(texScale-1), (texY*texScale)+(texScale-1)); //5
-  vertex( w/2,  w/2, -w/2, texX*texScale,  (texY*texScale)+(texScale-1)); //6
-  // Z+ face
-  vertex(-w/2, -w/2, w/2, texX*texScale,  texY*texScale); //4
-  vertex( w/2, -w/2, w/2, (texX*texScale)+(texScale-1), texY*texScale); //3
-  vertex( w/2,  w/2, w/2, (texX*texScale)+(texScale-1), (texY*texScale)+(texScale-1)); //7
-  vertex(-w/2,  w/2, w/2, texX*texScale,  (texY*texScale)+(texScale-1)); //8
-  // X- face
-  vertex(-w/2, -w/2, -w/2, texX*texScale,  texY*texScale); //1
-  vertex(-w/2, -w/2,  w/2, (texX*texScale)+(texScale-1), texY*texScale); //4
-  vertex(-w/2,  w/2,  w/2, (texX*texScale)+(texScale-1), (texY*texScale)+(texScale-1)); //8
-  vertex(-w/2,  w/2, -w/2, texX*texScale,  (texY*texScale)+(texScale-1)); //5
-  // X+ face
-  vertex(w/2, -w/2,  w/2, texX*texScale,  texY*texScale); //3
-  vertex(w/2, -w/2, -w/2, (texX*texScale)+(texScale-1), texY*texScale); //2
-  vertex(w/2,  w/2, -w/2, (texX*texScale)+(texScale-1), (texY*texScale)+(texScale-1)); //6
-  vertex(w/2,  w/2,  w/2, texX*texScale,  (texY*texScale)+(texScale-1)); //7
-  // Y+ face
-  vertex(-w/2, w/2, -w/2, (texX*texScale)+(texScale-1), (texY*texScale)+(texScale-1)); //5
-  vertex( w/2, w/2, -w/2, texX*texScale,  (texY*texScale)+(texScale-1)); //6
-  vertex( w/2, w/2,  w/2, texX*texScale,  texY*texScale); //7
-  vertex(-w/2, w/2,  w/2, (texX*texScale)+(texScale-1), texY*texScale); //8
-  endShape();
-  popMatrix();
-  //z++;
+  /*** Draw GUI ***/
+  hint(DISABLE_DEPTH_TEST);
+  camera();
+  fill(255, 246, 64);
+  text("X: "+cam.x, 10, 20);
+  text("Y: "+cam.y, 10, 40);
+  text("Z: "+cam.z, 10, 60);
   
-  // Only reset mouse position if window has focus
+  text("H angle: "+cam.ah, 10, 100);
+  text("V angle: "+cam.av, 10, 120);
+  hint(ENABLE_DEPTH_TEST);
+  
+  // Reset mouse position if window has focus
   if (focused) { resetMousePos(); }
 }
 

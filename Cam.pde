@@ -4,7 +4,7 @@ class Cam {
   float x, y, z; //pos of camera
   float xTo, yTo, zTo; //coordinates to look at
   float ah, av; //angles for calculating lookat coords
-  float speed = 4.0; //speed factor
+  float speed = 12.0; //speed factor
   
   boolean isF, isB, isL, isR, isU, isD; //input booleans
   
@@ -16,17 +16,28 @@ class Cam {
     xTo = _xTo;
     yTo = _yTo;
     zTo = _zTo;
+    
+    ah = 270;
+    av = 90;
   }
   
   void update() {
+    // constrain ah to 0-360
+    if (ah >= 360) { ah -= 360; }
+    if (ah < 0) { ah += 360; }
+    // unit circle look direction
     xTo = cos(radians(ah));
     zTo = sin(radians(ah));
+    
+    // lock av between values (exact 0 and 180 have rendering errors) 
     av = constrain(av, 0.1, 179.9);
+    // unit circle look direction
     yTo = tan(radians(av-90));
   }
   
   void display() {
-    camera(x,y,z, x+xTo,y+yTo,z+zTo, 0,1,0);
+    // 3D camera with current settings
+    camera(x,y,z, x+xTo,y+yTo,z+zTo, 0,1,0); // camera y- is up
   }
   
   void move() {
