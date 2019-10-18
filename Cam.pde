@@ -4,7 +4,7 @@ class Cam {
   float x, y, z; //pos of camera
   float xTo, yTo, zTo; //coordinates to look at
   float ah, av; //angles for calculating lookat coords
-  float speed = 12.0; //speed factor
+  float speed = 18.0; //speed factor
   
   boolean isF, isB, isL, isR, isU, isD; //input booleans
   
