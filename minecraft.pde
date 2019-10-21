@@ -17,17 +17,25 @@ PVector mousePos = new PVector();
 
 //PImage textures;
 Cam cam;
+float w = 1280, h = 720;
+float fov = PI/3, ar = w/h; // FOV and Aspect ratio values
 
 // Create ArrayList for loaded chunks
 ArrayList<Chunk> chunks = new ArrayList<Chunk>();
 
+/****************/
+/* SETUP METHOD */
+/****************/
+
 void setup() {
+  // Create canvas (window)
   size(1280, 720, P3D);
   
-  ((PGraphicsOpenGL)g).textureSampling(3); // This just disables antialiasing because it looks all blurry (https://forum.processing.org/one/topic/p3d-disable-texture-smoothing-antialiasing-when-upscaling.html)
+  // Disable antialiasing
+  ((PGraphicsOpenGL)g).textureSampling(3); // https://forum.processing.org/one/topic/p3d-disable-texture-smoothing-antialiasing-when-upscaling.html
   
-  //***** THIS WAS MOVED TO Chunk FOR A MINUTE (ALSO THE OBJECT DECLARATION EARLIER) *****//
-  //// Load texture map
+  //***** Textures are currently being loaded in Chunk object per object (inefficient) *****//
+  // Load texture map
   //textures = loadImage("textures.png");
   
   // Camera
@@ -43,6 +51,7 @@ void setup() {
   
   // Generate terrain for chunks
   for (Chunk c : chunks) {
+    // Generate terrain data
     c.generateTerrain();
     
     // Add neighbors
@@ -66,11 +75,23 @@ void setup() {
     }
   }
   
+  // Seperate loop to ensure all chunks have data
+  for (Chunk c : chunks) {
+    // Generate mesh data for drawing
+    c.buildMesh();
+  }
+  
   //Funky doodah reset mouse position (https://discourse.processing.org/t/extending-the-mouse-range-past-the-screen-size/4431/4)
   win = (GLWindow)surface.getNative();
   win.setPointerVisible(false);
   mousePos.set(width/2, height/2).mult(3);
+  
 }
+
+
+/***************/
+/* DRAW METHOD */
+/***************/
 
 void draw() {
   background(103, 152, 201);
@@ -88,22 +109,23 @@ void draw() {
   cam.ah -= ((width/2)-mouseX) *lookSpeed;
   cam.av -= ((height/2)-mouseY)*lookSpeed;
   cam.move();
+  perspective(fov, ar, 0.01, 10000); // This one extends the render distance near and far
   cam.update();
   cam.display();
   
   // lights after camera so it is dependant on camera transformations
-  ambientLight(70, 70, 70);
-  directionalLight(255, 255, 255, 0.5, 0.9, -0.2);
+  ambientLight(110, 110, 110);
+  directionalLight(200, 200, 200, 0.5, 0.9, -0.2);
   
   // RENDER THINGS HERE //
   for (Chunk c : chunks) {
-    c.buildMesh();
+    c.render();
   }
   
   /*** Draw GUI ***/
   hint(DISABLE_DEPTH_TEST);
   camera();
-  fill(255, 246, 64);
+  //fill(255, 246, 64);
   text("FPS: "+frameRate, width-100, 20);
   text("X: "+cam.x, 10, 20);
   text("Y: "+cam.y, 10, 40);
@@ -134,5 +156,12 @@ void resetMousePos() {
 // Adjust camera speed with scrolling
 void mouseWheel(MouseEvent event) {
   float e = event.getCount();
-  cam.speed -= e;
+  
+  cam.speed -= e/10;
+  
+  //fov += e/10;
+  //println("FOV: "+fov);
+  
+  //ar += e/100;
+  //println("Aspect Ratio: "+ar);
 }
