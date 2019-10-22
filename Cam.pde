@@ -2,6 +2,7 @@ class Cam {
   
   // Object variables
   float x, y, z; //pos of camera
+  int chunkX, chunkZ; //pos of camera in terms of chunks
   float xTo, yTo, zTo; //coordinates to look at
   float ah, av; //angles for calculating lookat coords
   float speed = 0.5; //speed factor
@@ -33,6 +34,10 @@ class Cam {
     av = constrain(av, 0.1, 179.9);
     // unit circle look direction
     yTo = tan(radians(av-90));
+    
+    // update chunkX and chunkY
+    chunkX = (int)floor(x/16);
+    chunkZ = (int)floor(z/16);
   }
   
   void display() {

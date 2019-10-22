@@ -1,6 +1,4 @@
-
-class Chunk {
-
+class Chunk {  
   // Variables
   float x, y, z; // position in world
   int[][][] blocks = new int[16][16][128]; // 3D array of blocks
@@ -11,7 +9,15 @@ class Chunk {
 
   //PImage in here temporarily
   // Load texture map
-  PImage textures = loadImage("textures.png");
+  PImage textures;
+  
+  // Array for block texture data ([ID][topx, topy, sidex, sidey, bottomx, bottomy])
+  int[][] blockTextureData = {
+    {0, 0, 0, 0, 0, 0}, // Air (technically gives texture of grass top but is never given faces)
+    {1, 0, 1, 0, 1, 0}, // Stone
+    {2, 0, 2, 0, 2, 0}, // Dirt
+    {0, 0, 3, 0, 2, 0} // Grass
+  };
 
 
   // Chunk init; pass in chunk x and z 
@@ -26,21 +32,41 @@ class Chunk {
     for (int i = 0; i < blocks.length; i++) { // i refers to x
       for (int j = 0; j < blocks[0].length; j++) { // j refers to z
         for (int h = 0; h < blocks[0][1].length; h++) { // h refers to y
-        
-          /** Create current block **/
-          //blocks[i][j][h] = (h < 20)?int(round(random(1))):0;
-          //blocks[i][j][h] = 1;
-          if (h > noise((1000+i+x*16)*0.006, (1000+j+z*16)*0.006)*128) {
-          //if (j >= i && h > i && h < 20) {
-            blocks[i][j][h] = 1;
-          }
-          
+          blocks[i][j][h] = generateBlock(i, j, h); 
         }
       }
     }
   }
   
-  // Create the chunks mesh to render later
+  // Returns block ID using terrain generation method
+  int generateBlock(int i, int j, int h) {
+    //return variable defaults to air
+    int out = 0;
+    
+    // Determine block ID
+    float topBlock = round(noise((1000+i+x*16)*0.006, (1000+j+z*16)*0.006)*128);
+    if (noise((1000+i+x*16)*0.006, (1000+h+y*16)*0.006, (z+j*16)*0.006) > 0.5) {
+      // At Top block
+      if (h == topBlock) {
+        out = 3; // Grass
+        
+        // Below Top block
+      } else if (h > topBlock) {
+        out = 2; // Dirt
+        
+        // 8 Below that layer
+        if (h > topBlock + 8) {
+          out = 1; // Stone
+        }
+      } else {
+        out = 0; // Air
+      }
+    }
+    
+    return out;
+  }
+  
+  // Create the chunk's mesh to render later
   void buildMesh() {
     // 3D loop for each cube
     for (int i = 0; i < blocks.length; i++) { // i refers to x
@@ -48,15 +74,18 @@ class Chunk {
         for (int h = 0; h < blocks[0][1].length; h++) { // h refers to y
 
           // Initial variables
+          int id = blocks[i][j][h];
           float w = 0.5; // Half of cube width
           float texScale = 16;
-          float texX = 2, texY = 0; // This texture index should change depending on block ID
+          float texX, texY; // This texture index changes depending on block ID
 
-          if (blocks[i][j][h] == 1) { // only proceed if current block is not air
+          if (blocks[i][j][h] != 0) { // only proceed if current block is not air
             float xOff = i*w*2+(x*w*32), yOff = h*w*2, zOff = j*w*2+(z*w*32);
             try {
               // Y- face
               if (h == 0 || blocks[i][j][h-1] == 0) {
+                texX = blockTextureData[id][0];
+                texY = blockTextureData[id][1];
                 Face f = new Face();
                 faces.add(f);
                 f.addVertex(0, (-w)+xOff, (-w)+yOff, (-w)+zOff, texX*texScale, texY*texScale); //1
@@ -70,6 +99,8 @@ class Chunk {
               if (!(j == 0)) { // If not at chunk edge
                 // DRAW FACE
                 if (j == 0 || blocks[i][j-1][h] == 0) { // face cull
+                  texX = blockTextureData[id][2];
+                  texY = blockTextureData[id][3];
                   Face f = new Face();
                   faces.add(f);
                   f.addVertex(0, (w)+xOff, (-w)+yOff, (-w)+zOff, texX*texScale, texY*texScale); //2
@@ -80,6 +111,8 @@ class Chunk {
               } else if (neighbors[2] != null) { // If at chunk edge and neighbor exists
                 // if neighbor has no block at same coordinates (but z = 15), draw face
                 if (neighbors[2].blocks[i][15][h] == 0) {
+                  texX = blockTextureData[id][2];
+                  texY = blockTextureData[id][3];
                   Face f = new Face();
                   faces.add(f);
                   f.addVertex(0, (w)+xOff, (-w)+yOff, (-w)+zOff, texX*texScale, texY*texScale); //2
@@ -93,6 +126,8 @@ class Chunk {
               if (!(j == 15)) { // If not at chunk edge
                 // DRAW FACE
                 if (j == 15 || blocks[i][j+1][h] == 0) { // face cull
+                  texX = blockTextureData[id][2];
+                  texY = blockTextureData[id][3];
                   Face f = new Face();
                   faces.add(f);
                   f.addVertex(0, (-w)+xOff, (-w)+yOff, (w)+zOff, texX*texScale, texY*texScale); //4
@@ -103,6 +138,8 @@ class Chunk {
               } else if (neighbors[3] != null) { // If at chunk edge and neighbor exists
                 // draw face if neighbor's opposing block doesn's exist (==0)
                 if (neighbors[3].blocks[i][0][h] == 0) {
+                  texX = blockTextureData[id][2];
+                  texY = blockTextureData[id][3];
                   Face f = new Face();
                   faces.add(f);
                   f.addVertex(0, (-w)+xOff, (-w)+yOff, (w)+zOff, texX*texScale, texY*texScale); //4
@@ -116,6 +153,8 @@ class Chunk {
               if (!(i == 0)) { // If not at chunk edge
                 // DRAW FACE
                 if (blocks[i-1][j][h] == 0) { // Face cull
+                  texX = blockTextureData[id][2];
+                  texY = blockTextureData[id][3];
                   Face f = new Face();
                   faces.add(f);
                   f.addVertex(0, (-w)+xOff, (-w)+yOff, (-w)+zOff, texX*texScale, texY*texScale); //1
@@ -126,6 +165,8 @@ class Chunk {
               } else if (neighbors[0] != null) {
                 // If neighbor has block at same coordinate but x = 15, don't draw face
                 if (neighbors[0].blocks[15][j][h] == 0) {
+                  texX = blockTextureData[id][2];
+                  texY = blockTextureData[id][3];
                   Face f = new Face();
                   faces.add(f);
                   f.addVertex(0, (-w)+xOff, (-w)+yOff, (-w)+zOff, texX*texScale, texY*texScale); //1
@@ -139,6 +180,8 @@ class Chunk {
               if (!(i == 15)) {       // If not chunk at edge
                 // DRAW FACE
                 if (blocks[i+1][j][h] == 0) { // Face cull
+                  texX = blockTextureData[id][2];
+                  texY = blockTextureData[id][3];
                   Face f = new Face();
                   faces.add(f);
                   f.addVertex(0, (w)+xOff, (-w)+yOff, (w)+zOff, texX*texScale, texY*texScale); //3
@@ -149,6 +192,8 @@ class Chunk {
               } else if (neighbors[1] != null) { // If at chunk edge and neighbor exists
                 // If neighbor has block at same coordinates exept x = 0, don't draw face
                 if (neighbors[1].blocks[0][j][h] == 0) {
+                  texX = blockTextureData[id][2];
+                  texY = blockTextureData[id][3];
                   Face f = new Face();
                   faces.add(f);
                   f.addVertex(0, (w)+xOff, (-w)+yOff, (w)+zOff, texX*texScale, texY*texScale); //3
@@ -160,6 +205,8 @@ class Chunk {
               
               // Y+ face (texture potentially upside-down depending how you want it, fix would be swap 6<->8 and 5<->7)
               if (h == 127 || blocks[i][j][h+1] == 0) {
+                texX = blockTextureData[id][4];
+                texY = blockTextureData[id][5];
                 Face f = new Face();
                 faces.add(f);
                 f.addVertex(0, (-w)+xOff, (w)+yOff, (w)+zOff, texX*texScale, texY*texScale); //8
