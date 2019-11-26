@@ -129,9 +129,9 @@ void draw() {
   
   // Render chunks
   for (Chunk c : chunks) {
-    //if (screenX(c.x*16, 0, c.z*16) >= -500 && screenX(c.x*16, 0, c.z*16) <= width+500) { // Attempt at view frustum culling
+    if (screenX(c.x*16, cam.y, c.z*16) >= -300 && screenX(c.x*16, cam.y, c.z*16) <= width+300) { // Attempt at view frustum culling
      c.render();
-    //}
+    }
     
     // Add distant chunks to remove list
     if (dist(cam.chunkX, cam.chunkZ, c.x, c.z) > 4) {

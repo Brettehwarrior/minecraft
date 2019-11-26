@@ -45,7 +45,7 @@ class Chunk {
     
     // Determine block ID
     float topBlock = round(noise((1000+i+x*16)*0.006, (1000+j+z*16)*0.006)*128);
-    if (noise((1000+i+x*16)*0.006, (1000+h+y*16)*0.006, (z+j*16)*0.006) > 0.5) {
+    //if (noise((1000+i+x*16)*0.006, (1000+h+y*16)*0.006, (z+j*16)*0.006) > 0.5) {
       // At Top block
       if (h == topBlock) {
         out = 3; // Grass
@@ -61,7 +61,7 @@ class Chunk {
       } else {
         out = 0; // Air
       }
-    }
+    //}
     
     return out;
   }
